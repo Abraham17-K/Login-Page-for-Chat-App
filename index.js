@@ -27,9 +27,11 @@ const sessionStore = new MongoStore({
 
 require("dotenv").config()
 
+app.set("view engine", "ejs")
+
 app.use(express.json())
 app.use(express.urlencoded({ extended: true }))
-app.use(express.static('public'))
+app.use(express.static('views'))
 app.use(cookieParser())
 app.use(session({
      secret: process.env.SESSION_SECRET,
@@ -58,7 +60,7 @@ app.get("/signup", (req, res) => {
      if (req.session.username) {
           res.redirect("/app")
      } else {
-          res.sendFile(__dirname + "/public/signup.html")
+          res.render('signup')
      }
 })
 
@@ -100,14 +102,14 @@ app.get("/app", (req, res) => {
           res.redirect("/login")
           return
      }
-     res.sendFile(__dirname + "/public/chat.html")
+     res.render('chat')
      io.emit("alert message", req.session.username + " has joined the chat")
 })
 
 app.get("/login", (req, res) => {
      console.log(req.session.username)
      if (!req.session.username) {
-          res.sendFile(__dirname + "/public/login.html")
+          res.render('login')
           return
      }
      res.redirect("/app")
