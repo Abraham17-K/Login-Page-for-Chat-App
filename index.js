@@ -9,14 +9,19 @@ const mongoose = require("mongoose")
 const session = require("express-session")
 const cookieParser = require("cookie-parser")
 const MongoStore = require("connect-mongo")(session)
-const sleep = ms => new Promise(r => setTimeout(r, ms));
+const sqlite3 = require("sqlite3").verbose()
+require("dotenv").config()
 
-const mongodbString = "mongodb://localhost:27017/chat-app-sessions"
+// const mongodbString = `mongodb+srv://${process.env.SESSION_USERNAME}:${process.env.SESSION_PASSWORD}@chat-ap-sessions.szkry.mongodb.net/myFirstDatabase?retryWrites=true&w=majority`
+const mongodbString = "mongodb://localhost:27017"
+
 
 const mongodbOptions = {
      useNewUrlParser: true,
      useUnifiedTopology: true
 }
+
+const logindb = new sqlite3.Database('./databases/login.db')
 
 const connection = mongoose.createConnection(mongodbString, mongodbOptions)
 const sessionStore = new MongoStore({
@@ -25,11 +30,10 @@ const sessionStore = new MongoStore({
 
 })
 
-require("dotenv").config()
 
 app.use(express.json())
 app.use(express.urlencoded({ extended: true }))
-app.use(express.static('public'))
+app.use(express.static('views'))
 app.use(cookieParser())
 app.use(session({
      secret: process.env.SESSION_SECRET,
@@ -39,56 +43,71 @@ app.use(session({
      cookie: { maxAge: 1000 * 60 * 60 * 24 }
 }))
 
-const db = mysql.createPool({
-     host: process.env.DB_HOST,
-     user: process.env.DB_USER,
-     password: process.env.DB_PASSWORD,
-     database: process.env.DB_DATABASE,
-     port: process.env.DB_PORT
-})
-
-
+app.set("view engine", "ejs")
 
 
 app.get("/", (req, res) => {
-     res.redirect("/signup")
+     res.redirect("/login")
 })
 
 app.get("/signup", (req, res) => {
      if (req.session.username) {
           res.redirect("/app")
      } else {
-          res.sendFile(__dirname + "/public/signup.html")
+          res.render('signup')
      }
 })
 
-app.post("/signupUser", async (req, res) => {
+
+// app.post("/signup", async (req, res) => {
+//      const username = req.body.username
+//      if (!req.body.username || !req.body.password) {
+//           res.render('signup', {error: "Please enter a username and password"})
+//           return
+//      }
+//      const hashedPassword = await bcrypt.hash(req.body.password, 10)
+//      db.getConnection(async (err, connection) => {
+//           if (err) throw (err)
+//           const searchQuery = "SELECT * FROM usertable WHERE username = ?"
+//           const userSearchQuery = mysql.format(searchQuery, [username])
+//           await connection.query(userSearchQuery, async (err, response) => {
+//                if (err) throw (err)
+//                if (response.length > 0) {
+//                     connection.release()
+//                     res.render('signup', { error: "Account already exists" })
+//                } else {
+//                     const insertQuery = "INSERT INTO usertable VALUES (0, ?, ?)"
+//                     const useInsertQuery = mysql.format(insertQuery, [username, hashedPassword])
+//                     await connection.query(useInsertQuery, (err, response) => {
+//                          if (err) throw (err)
+//                          connection.release()
+//                          res.redirect("/login")
+//                     })
+//                }
+//           })
+//      })
+// })
+
+
+app.post("/signup", async (req, res) => {
      const username = req.body.username
      if (!req.body.username || !req.body.password) {
           res.send("Please enter a username and password")
           return
      }
      const hashedPassword = await bcrypt.hash(req.body.password, 10)
-     db.getConnection(async (err, connection) => {
+     logindb.all("SELECT * FROM loginTable WHERE username = ?", [username], async (err, response) => {
           if (err) throw (err)
-          const searchQuery = "SELECT * FROM usertable WHERE username = ?"
-          const userSearchQuery = mysql.format(searchQuery, [username])
-          await connection.query(userSearchQuery, async (err, response) => {
-               if (err) throw (err)
-               if (response.length > 0) {
-                    connection.release()
-                    res.send("Username already exists")
-               } else {
-                    const insertQuery = "INSERT INTO usertable VALUES (0, ?, ?)"
-                    const useInsertQuery = mysql.format(insertQuery, [username, hashedPassword])
-                    await connection.query(useInsertQuery, (err, response) => {
-                         if (err) throw (err)
-                         connection.release()
-                         res.redirect("/login")
-                    })
-               }
-          })
+          if (response.length > 0) {
+               res.render('signup', { error: "Account already exists" }) 
+          } else {
+               logindb.run("INSERT INTO loginTable VALUES (?, ?)", [username, hashedPassword], (err) => {
+                    if (err) throw (err)
+                    res.redirect("/login")
+               })
+          }
      })
+
 })
 
 app.get("/getSession", (req, res) => {
@@ -100,14 +119,13 @@ app.get("/app", (req, res) => {
           res.redirect("/login")
           return
      }
-     res.sendFile(__dirname + "/public/chat.html")
+     res.render('chat')
      io.emit("alert message", req.session.username + " has joined the chat")
 })
 
 app.get("/login", (req, res) => {
-     console.log(req.session.username)
      if (!req.session.username) {
-          res.sendFile(__dirname + "/public/login.html")
+          res.render('login')
           return
      }
      res.redirect("/app")
@@ -137,31 +155,56 @@ app.post("/sendLogin", (req, res) => {
      io.emit("alert message", req.session.username + " has joined the chat")
 })
 
-app.post("/loginUser", (req, res) => {
+// app.post("/login", (req, res) => {
+//      const username = req.body.username
+//      const password = req.body.password
+//      if (!username || !password) {
+//           res.render("login", { error: "Please enter a username and password" })
+//           return
+//      }
+//      db.getConnection(async (err, connection) => {
+//           const query = "SELECT * FROM usertable WHERE username = ?"
+//           const selectQuery = mysql.format(query, [username])
+//           await db.query(selectQuery, async (err, response) => {
+//                if (err) throw (err)
+//                connection.release()
+//                if (response.length > 0) {
+//                     if (await bcrypt.compare(password, response[0].password)) {
+//                          req.session.username = response[0].username
+//                          res.redirect("/app")
+//                          res.send()
+//                     } else {
+//                          res.render("login", { error: "Incorrect password" })
+//                     }
+//                } else if (response.length === 0) {
+//                     res.render("login", { error: "Account does not exist" })
+//                }
+//           })
+//      })
+// })
+
+app.post("/login", (req, res) => {
      const username = req.body.username
      const password = req.body.password
-     db.getConnection(async (err, connection) => {
-          const query = "SELECT * FROM usertable WHERE username = ?"
-          const selectQuery = mysql.format(query, [username])
-          await db.query(selectQuery, async (err, response) => {
+     if (!username || !password) {
+          res.render("login", { error: "Please enter a username and password" })
+          return
+     }
+          logindb.all("SELECT * FROM loginTable WHERE username = ?", [username], async (err, response) => {
                if (err) throw (err)
-               connection.release()
                if (response.length > 0) {
                     if (await bcrypt.compare(password, response[0].password)) {
                          req.session.username = response[0].username
                          res.redirect("/app")
                          res.send()
                     } else {
-                         res.redirect("/login")
-                         res.send("Incorrect Password")
+                         res.render("login", { error: "Incorrect password" })
                     }
                } else if (response.length === 0) {
-                    res.redirect("/login")
-                    res.send("Account does not exist")
+                    res.render("login", { error: "Account does not exist" })
                }
           })
      })
-})
 
 http.listen(port, () => {
      console.log(`Login page running at http://localhost:${port}/`)

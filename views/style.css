@@ -108,3 +108,56 @@ a.button-style-red {
      height: 30px;
      font-style: normal;
 }
+
+.form-container {
+     max-width: 500px;
+     width: 85%;
+     margin: 0 auto;
+     font-size: 15px;
+}
+
+.form-container input,
+.form-container button,
+.form-container p {
+     width: 100%;
+     border-radius: 3px;
+     padding: 0 8px 0 8px;
+}
+
+.form-container p {
+     padding: 3px;
+     margin: auto 0;
+}
+
+.form-container input,
+.form-container button {
+     height: 60px;
+     border-radius: 10px;
+}
+
+.center {
+     margin: 0;
+     position: absolute;
+     top: 50%;
+     left: 50%;
+     transform: translate(-50%, -50%);
+}
+
+.form-container button {
+     font-size: 15px;
+}
+
+.navbar {
+     font-size: 20px;
+     color: white;
+     margin:0;
+     padding:0;
+}
+
+.page-body {
+     background-image: url("https://www.publicdomainpictures.net/pictures/250000/velka/geometric-background-15157991915ya.jpg")
+}
+
+.page-body h1 {
+     font-size:50px;
+}
