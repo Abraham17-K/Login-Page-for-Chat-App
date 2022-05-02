@@ -4,24 +4,18 @@ const http = require("http").Server(app)
 const io = require("socket.io")(http)
 const port = process.env.PORT || 3000
 const bcrypt = require("bcrypt")
-const mysql = require("mysql")
 const mongoose = require("mongoose")
+const client = require('mongodb').MongoClient;
 const session = require("express-session")
 const cookieParser = require("cookie-parser")
 const MongoStore = require("connect-mongo")(session)
-const sqlite3 = require("sqlite3").verbose()
 require("dotenv").config()
 
-// const mongodbString = `mongodb+srv://${process.env.SESSION_USERNAME}:${process.env.SESSION_PASSWORD}@chat-ap-sessions.szkry.mongodb.net/myFirstDatabase?retryWrites=true&w=majority`
-const mongodbString = "mongodb://localhost:27017"
-
-
+const mongodbString = `mongodb+srv://${process.env.SESSION_USERNAME}:${process.env.SESSION_PASSWORD}@chat-ap-sessions.szkry.mongodb.net/myFirstDatabase?retryWrites=true&w=majority`
 const mongodbOptions = {
      useNewUrlParser: true,
      useUnifiedTopology: true
 }
-
-const logindb = new sqlite3.Database('./databases/login.db')
 
 const connection = mongoose.createConnection(mongodbString, mongodbOptions)
 const sessionStore = new MongoStore({
@@ -58,56 +52,35 @@ app.get("/signup", (req, res) => {
      }
 })
 
-
-// app.post("/signup", async (req, res) => {
-//      const username = req.body.username
-//      if (!req.body.username || !req.body.password) {
-//           res.render('signup', {error: "Please enter a username and password"})
-//           return
-//      }
-//      const hashedPassword = await bcrypt.hash(req.body.password, 10)
-//      db.getConnection(async (err, connection) => {
-//           if (err) throw (err)
-//           const searchQuery = "SELECT * FROM usertable WHERE username = ?"
-//           const userSearchQuery = mysql.format(searchQuery, [username])
-//           await connection.query(userSearchQuery, async (err, response) => {
-//                if (err) throw (err)
-//                if (response.length > 0) {
-//                     connection.release()
-//                     res.render('signup', { error: "Account already exists" })
-//                } else {
-//                     const insertQuery = "INSERT INTO usertable VALUES (0, ?, ?)"
-//                     const useInsertQuery = mysql.format(insertQuery, [username, hashedPassword])
-//                     await connection.query(useInsertQuery, (err, response) => {
-//                          if (err) throw (err)
-//                          connection.release()
-//                          res.redirect("/login")
-//                     })
-//                }
-//           })
-//      })
-// })
-
-
 app.post("/signup", async (req, res) => {
      const username = req.body.username
      if (!req.body.username || !req.body.password) {
-          res.send("Please enter a username and password")
+          res.render("signup", { error: "Please enter a username and password" })
           return
      }
      const hashedPassword = await bcrypt.hash(req.body.password, 10)
-     logindb.all("SELECT * FROM loginTable WHERE username = ?", [username], async (err, response) => {
-          if (err) throw (err)
-          if (response.length > 0) {
-               res.render('signup', { error: "Account already exists" }) 
+     client.connect(mongodbString, async (err, db) => {
+          if (err) {
+               res.render("signup", { error: "Error signing up. Please try again later." })
+               throw (err)
           } else {
-               logindb.run("INSERT INTO loginTable VALUES (?, ?)", [username, hashedPassword], (err) => {
+               const collection = db.db("chat-app-users").collection("userCollection")
+               collection.findOne({ username: username }, async (err, result) => {
                     if (err) throw (err)
-                    res.redirect("/login")
+                    if (result != null) {
+                         res.render("signup", { error: "Account already exists" })
+                         await db.close()
+                    } else {
+                         collection.insertOne({ username: username, password: hashedPassword }, async (err, result) => {
+                              if (err) throw (err)
+                              res.redirect("/login")
+                              res.send()
+                              await db.close()
+                         })
+                    }
                })
           }
      })
-
 })
 
 app.get("/getSession", (req, res) => {
@@ -144,44 +117,19 @@ app.post("/sendMessage", (req, res) => {
      const message = req.body.message
      const username = req.session.username
      io.emit("chat message", username + " : " + message)
+     res.send()
 })
 
 app.post("/sendLogout", (req, res) => {
      if (req.session.username === undefined) return
      io.emit("alert message", req.session.username + " has left/minimized the chat")
+     res.send()
 })
 
 app.post("/sendLogin", (req, res) => {
      io.emit("alert message", req.session.username + " has joined the chat")
+     res.send()
 })
-
-// app.post("/login", (req, res) => {
-//      const username = req.body.username
-//      const password = req.body.password
-//      if (!username || !password) {
-//           res.render("login", { error: "Please enter a username and password" })
-//           return
-//      }
-//      db.getConnection(async (err, connection) => {
-//           const query = "SELECT * FROM usertable WHERE username = ?"
-//           const selectQuery = mysql.format(query, [username])
-//           await db.query(selectQuery, async (err, response) => {
-//                if (err) throw (err)
-//                connection.release()
-//                if (response.length > 0) {
-//                     if (await bcrypt.compare(password, response[0].password)) {
-//                          req.session.username = response[0].username
-//                          res.redirect("/app")
-//                          res.send()
-//                     } else {
-//                          res.render("login", { error: "Incorrect password" })
-//                     }
-//                } else if (response.length === 0) {
-//                     res.render("login", { error: "Account does not exist" })
-//                }
-//           })
-//      })
-// })
 
 app.post("/login", (req, res) => {
      const username = req.body.username
@@ -190,31 +138,38 @@ app.post("/login", (req, res) => {
           res.render("login", { error: "Please enter a username and password" })
           return
      }
-          logindb.all("SELECT * FROM loginTable WHERE username = ?", [username], async (err, response) => {
-               if (err) throw (err)
-               if (response.length > 0) {
-                    if (await bcrypt.compare(password, response[0].password)) {
-                         req.session.username = response[0].username
+     client.connect(mongodbString, async (err, db) => {
+          if (err) throw (err)
+          const collection = db.db("chat-app-users").collection("userCollection")
+          collection.findOne({ username: username }, async (err, result) => {
+               if (err) {
+                    res.render("login", { error: "Error logging in. Please try again later." })
+                    throw (err)
+               }
+               if (result != null) {
+                    if (await bcrypt.compare(password, result.password)) {
+                         req.session.username = result.username
                          res.redirect("/app")
                          res.send()
                     } else {
                          res.render("login", { error: "Incorrect password" })
                     }
-               } else if (response.length === 0) {
+               } else if (result == null) {
                     res.render("login", { error: "Account does not exist" })
                }
           })
      })
-
-http.listen(port, () => {
-     console.log(`Login page running at http://localhost:${port}/`)
 })
 
-io.on("connection", (socket) => {
-     socket.on("chat message", (msg) => {
-          io.emit("chat message", msg)
+     http.listen(port, () => {
+          console.log(`Login page running at http://localhost:${port}/`)
      })
-     socket.on("alert message", (message) => {
-          io.emit("alert messagee", message)
+
+     io.on("connection", (socket) => {
+          socket.on("chat message", (msg) => {
+               io.emit("chat message", msg)
+          })
+          socket.on("alert message", (message) => {
+               io.emit("alert messagee", message)
+          })
      })
-})

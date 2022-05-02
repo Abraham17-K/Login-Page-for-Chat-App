@@ -9,7 +9,7 @@
 <body>
      <ul id="messages"></ul>
      <form id="form" action="">
-          <input placeholder="Type your message here!" id="input" autocomplete="off" /><button
+          <input placeholder="Type your message here!" name = "input" id="input" autocomplete="off" /><button
                class="sendButton">Send</button>
           <button style="float: right;" class="button-style-red" id="toggleNotifications" type="button">Notifications</button>
           <button style="float: right;" class="button-style-green" id="toggleAlerts" type="button">Alerts</button>
@@ -17,7 +17,6 @@
      </form>
      </button>
      <script src="/socket.io/socket.io.js"></script>
-     <!-- <script src="/script.js"></script> -->
      <script src="/chat-script.js"></script>
      <script src="/server-comm.js"></script>
 </body>

@@ -78,7 +78,6 @@ function sendNotification(msg) {
 }
 document.addEventListener("visibilitychange", async function () {
      if (document.visibilityState === "visible") {
-          n.close();
           await sendLoginMessage()
      } else if (document.visibilityState === "hidden") {
           await sendLogoutMessage()
