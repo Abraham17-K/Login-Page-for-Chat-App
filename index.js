@@ -27,8 +27,6 @@ const sessionStore = new MongoStore({
 
 require("dotenv").config()
 
-app.set("view engine", "ejs")
-
 app.use(express.json())
 app.use(express.urlencoded({ extended: true }))
 app.use(express.static('views'))
@@ -40,6 +38,8 @@ app.use(session({
      store: sessionStore,
      cookie: { maxAge: 1000 * 60 * 60 * 24 }
 }))
+
+app.set("view engine", "ejs")
 
 const db = mysql.createPool({
      host: process.env.DB_HOST,
@@ -53,7 +53,7 @@ const db = mysql.createPool({
 
 
 app.get("/", (req, res) => {
-     res.redirect("/signup")
+     res.redirect("/login")
 })
 
 app.get("/signup", (req, res) => {
@@ -64,10 +64,11 @@ app.get("/signup", (req, res) => {
      }
 })
 
-app.post("/signupUser", async (req, res) => {
+
+app.post("/signup", async (req, res) => {
      const username = req.body.username
      if (!req.body.username || !req.body.password) {
-          res.send("Please enter a username and password")
+          res.render('signup', {error: "Please enter a username and password"})
           return
      }
      const hashedPassword = await bcrypt.hash(req.body.password, 10)
@@ -79,7 +80,7 @@ app.post("/signupUser", async (req, res) => {
                if (err) throw (err)
                if (response.length > 0) {
                     connection.release()
-                    res.send("Username already exists")
+                    res.render('signup', { error: "Account already exists" })
                } else {
                     const insertQuery = "INSERT INTO usertable VALUES (0, ?, ?)"
                     const useInsertQuery = mysql.format(insertQuery, [username, hashedPassword])
@@ -139,9 +140,13 @@ app.post("/sendLogin", (req, res) => {
      io.emit("alert message", req.session.username + " has joined the chat")
 })
 
-app.post("/loginUser", (req, res) => {
+app.post("/login", (req, res) => {
      const username = req.body.username
      const password = req.body.password
+     if (!username || !password) {
+          res.render("login", { error: "Please enter a username and password" })
+          return
+     }
      db.getConnection(async (err, connection) => {
           const query = "SELECT * FROM usertable WHERE username = ?"
           const selectQuery = mysql.format(query, [username])
@@ -154,12 +159,10 @@ app.post("/loginUser", (req, res) => {
                          res.redirect("/app")
                          res.send()
                     } else {
-                         res.redirect("/login")
-                         res.send("Incorrect Password")
+                         res.render("login", { error: "Incorrect password" })
                     }
                } else if (response.length === 0) {
-                    res.redirect("/login")
-                    res.send("Account does not exist")
+                    res.render("login", { error: "Account does not exist" })
                }
           })
      })
