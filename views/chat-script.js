@@ -65,7 +65,7 @@ socket.on("chat message", function (message) {
 socket.on("alert message", function (message) {
      if (!alertsEnabled) return
      const alertText = document.createElement("p")
-     const alertTime = document.createElement("p") 
+     const alertTime = document.createElement("p")
      const alertItem = document.createElement("li")
      alertText.textContent = message
      alertTime.textContent = getTime()
@@ -114,7 +114,7 @@ document.getElementById("toggleAlerts").addEventListener("click", function (e) {
 
 const logoutButton = document.getElementById("logoutButton");
 logoutButton.addEventListener("click", async function (e) {
-     await logout().then(window.location.href="/logout")
+     await logout().then(window.location.href = "/logout")
 })
 
 function getTime() {
@@ -125,6 +125,11 @@ function getTime() {
           dayString = " PM"
      } else {
           dayString = " AM"
+     }
+     if (date.getMinutes() < 10) {
+          const minutes = "0" + date.getMinutes()
+     } else {
+          const minutes = date.getMinutes()
      }
      return hours + ":" + date.getMinutes() + dayString
 }

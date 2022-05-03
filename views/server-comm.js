@@ -1,5 +1,8 @@
 const url = "http://localhost:3000"
 
+window.onload = async function() {
+     await sendLoginMessage()
+}
 async function getSessionUsername() {
      let result = await fetch(`${url}/getSession`).then(res => res.json())
      return result.username

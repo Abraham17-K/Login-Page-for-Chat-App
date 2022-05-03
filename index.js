@@ -74,6 +74,7 @@ app.post("/signup", async (req, res) => {
                     } else {
                          collection.insertOne({ username: username, password: hashedPassword }, async (err, result) => {
                               if (err) throw (err)
+                              req.session.username = username
                               res.redirect("/login")
                               res.send()
                               await db.close()
@@ -98,6 +99,7 @@ app.get("/app", (req, res) => {
 })
 
 app.get("/login", (req, res) => {
+     console.log(req.session.username)
      if (!req.session.username) {
           res.render('login')
           return
@@ -117,17 +119,30 @@ app.get("/logout", (req, res) => {
 app.post("/sendMessage", (req, res) => {
      const message = req.body.message
      const username = req.session.username
-     io.emit("chat message", username + ": " + message)
+     if (!checkSession(username)) {
+          res.redirect("/login")
+     } else {
+          io.emit("chat message", username + ": " + message)
+     }
      res.send()
 })
 
 app.post("/sendLogout", (req, res) => {
-     if (req.session.username === undefined) return
+     if (!checkSession(req.session.username)) {
+          res.redirect("/login")
+          res.send()
+          return
+     } 
      io.emit("alert message", req.session.username + " has left/minimized the chat")
      res.send()
 })
 
 app.post("/sendLogin", (req, res) => {
+     if (!checkSession(req.session.username)) {
+          res.redirect("/login")
+          res.send()
+          return
+     }
      io.emit("alert message", req.session.username + " has joined the chat")
      res.send()
 })
@@ -163,15 +178,24 @@ app.post("/login", (req, res) => {
      })
 })
 
-     http.listen(port, () => {
-          console.log(`Login page running at http://localhost:${port}/`)
-     })
+http.listen(port, () => {
+     console.log(`Login page running at http://localhost:${port}/`)
+})
 
-     io.on("connection", (socket) => {
-          socket.on("chat message", (msg) => {
-               io.emit("chat message", msg)
-          })
-          socket.on("alert message", (message) => {
-               io.emit("alert messagee", message)
-          })
+io.on("connection", (socket) => {
+     socket.on("chat message", (msg) => {
+          io.emit("chat message", msg)
      })
+     socket.on("alert message", (message) => {
+          io.emit("alert messagee", message)
+     })
+})
+
+
+function checkSession(username) {
+     if (username == undefined) {
+          return false
+     } else {
+          return true
+     }
+}
