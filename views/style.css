@@ -150,8 +150,8 @@ a.button-style-red {
 .navbar {
      font-size: 20px;
      color: white;
-     margin:0;
-     padding:0;
+     margin: 0;
+     padding: 0;
 }
 
 .page-body {
@@ -159,5 +159,10 @@ a.button-style-red {
 }
 
 .page-body h1 {
-     font-size:50px;
+     font-size: 50px;
+}
+
+.chat-line p {
+     display: inline-block;
+     margin: 0 0 0 0;
 }

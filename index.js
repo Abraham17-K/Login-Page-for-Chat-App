@@ -8,6 +8,7 @@ const mongoose = require("mongoose")
 const client = require('mongodb').MongoClient;
 const session = require("express-session")
 const cookieParser = require("cookie-parser")
+const { time } = require("console")
 const MongoStore = require("connect-mongo")(session)
 require("dotenv").config()
 
@@ -116,7 +117,7 @@ app.get("/logout", (req, res) => {
 app.post("/sendMessage", (req, res) => {
      const message = req.body.message
      const username = req.session.username
-     io.emit("chat message", username + " : " + message)
+     io.emit("chat message", username + ": " + message)
      res.send()
 })
 
@@ -130,6 +131,7 @@ app.post("/sendLogin", (req, res) => {
      io.emit("alert message", req.session.username + " has joined the chat")
      res.send()
 })
+
 
 app.post("/login", (req, res) => {
      const username = req.body.username

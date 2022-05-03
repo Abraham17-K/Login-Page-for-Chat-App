@@ -47,21 +47,35 @@ form.addEventListener("submit", async function (e) {
      }
 });
 
-socket.on("chat message", function (msg) {
-     var item = document.createElement("li");
-     item.textContent = msg;
-     sendNotification(msg);
+socket.on("chat message", function (message) {
+     const item = document.createElement("li")
+     const itemText = document.createElement("p")
+     const itemTime = document.createElement("p")
+     itemTime.textContent = getTime();
+     itemText.textContent = message;
+     item.classList.add("chat-line")
+     itemTime.style.float = "right"
+     sendNotification(message);
      messages.appendChild(item);
+     item.appendChild(itemTime);
+     item.appendChild(itemText);
      window.scrollTo(0, document.body.scrollHeight);
 });
 
 socket.on("alert message", function (message) {
      if (!alertsEnabled) return
-     var alertItem = document.createElement("li");
-     alertItem.textContent = message;
+     const alertText = document.createElement("p")
+     const alertTime = document.createElement("p") 
+     const alertItem = document.createElement("li")
+     alertText.textContent = message
+     alertTime.textContent = getTime()
+     alertItem.classList.add("chat-line")
+     alertTime.style.float = "right"
      sendNotification(message);
      messages.appendChild(alertItem);
-     alertItem.style.fontStyle = "italic"
+     alertItem.appendChild(alertTime);
+     alertItem.appendChild(alertText);
+     alertText.style.fontStyle = "italic"
      window.scrollTo(0, document.body.scrollHeight);
 })
 
@@ -102,3 +116,15 @@ const logoutButton = document.getElementById("logoutButton");
 logoutButton.addEventListener("click", async function (e) {
      await logout().then(window.location.href="/logout")
 })
+
+function getTime() {
+     const date = new Date();
+     var hours = date.getHours()
+     if (hours > 12) {
+          hours -= 12
+          dayString = " PM"
+     } else {
+          dayString = " AM"
+     }
+     return hours + ":" + date.getMinutes() + dayString
+}
