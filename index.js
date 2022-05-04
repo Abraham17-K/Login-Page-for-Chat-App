@@ -99,7 +99,6 @@ app.get("/app", (req, res) => {
 })
 
 app.get("/login", (req, res) => {
-     console.log(req.session.username)
      if (!req.session.username) {
           res.render('login')
           return
