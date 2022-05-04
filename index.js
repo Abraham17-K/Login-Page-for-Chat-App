@@ -12,7 +12,7 @@ const { time } = require("console")
 const MongoStore = require("connect-mongo")(session)
 require("dotenv").config()
 
-const mongodbString = `mongodb+srv://${process.env.SESSION_USERNAME}:${process.env.SESSION_PASSWORD}@chat-ap-sessions.szkry.mongodb.net/myFirstDatabase?retryWrites=true&w=majority`
+const mongodbString = `mongodb+srv://${process.env.SESSION_USERNAME}:${process.env.SESSION_PASSWORD}@chat-ap-sessions.szkry.mongodb.net/chat-app-sessions?retryWrites=true&w=majority`
 const mongodbOptions = {
      useNewUrlParser: true,
      useUnifiedTopology: true
@@ -21,7 +21,7 @@ const mongodbOptions = {
 const connection = mongoose.createConnection(mongodbString, mongodbOptions)
 const sessionStore = new MongoStore({
      mongooseConnection: connection,
-     collection: "sessions"
+     collection: "chat-app"
 
 })
 

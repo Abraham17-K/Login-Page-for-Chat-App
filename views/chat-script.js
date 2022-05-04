@@ -123,13 +123,16 @@ function getTime() {
      if (hours > 12) {
           hours -= 12
           dayString = " PM"
+     } else if (hours == 12) {
+          dayString = " AM"
      } else {
           dayString = " AM"
      }
+     var minutes
      if (date.getMinutes() < 10) {
-          const minutes = "0" + date.getMinutes()
+          minutes = "0" + date.getMinutes()
      } else {
-          const minutes = date.getMinutes()
+          minutes = date.getMinutes()
      }
-     return hours + ":" + date.getMinutes() + dayString
+     return hours + ":" + minutes + dayString
 }
